@@ -3,7 +3,11 @@
 
 from __future__ import annotations
 
+import argparse
+import json
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
 from rich import box
 from rich.console import Console
@@ -17,6 +21,30 @@ from tips_scraper import DEFAULT_SEARCH_KEYWORDS, fetch_trending_articles
 
 console = Console()
 AFFILIATE_ACCOUNT = "Nfcchipplatform"
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Tips.jp アフィリエイト向け 記事リサーチ＆特典ツールアイデア自動生成",
+    )
+    parser.add_argument(
+        "--keywords",
+        nargs="+",
+        metavar="KW",
+        help=f"検索キーワード（デフォルト: {' '.join(DEFAULT_SEARCH_KEYWORDS)}）",
+    )
+    parser.add_argument(
+        "--mock",
+        action="store_true",
+        help="スクレイピングをスキップし、モックデータで動作確認する",
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        metavar="FILE",
+        help="分析結果を JSON ファイルに保存する（例: report.json）",
+    )
+    return parser.parse_args()
 
 
 def _print_banner() -> None:
@@ -104,17 +132,52 @@ def _display_final_result(target: dict, idea: str) -> None:
     )
 
 
-def run() -> int:
+def _save_report(
+    output_path: str,
+    keywords: list[str],
+    articles: list[dict],
+    scored: list[dict],
+    target: dict,
+    idea: str,
+) -> None:
+    report = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "affiliate_account": AFFILIATE_ACCOUNT,
+        "search_keywords": keywords,
+        "article_count": len(articles),
+        "articles": articles,
+        "scored_articles": scored,
+        "top_target": target,
+        "bonus_tool_idea": idea,
+    }
+
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    console.print(f"[bold green]✓[/bold green] レポートを保存しました: [cyan]{path}[/cyan]\n")
+
+
+def run(args: argparse.Namespace | None = None) -> int:
     """メイン実行フロー。"""
+    if args is None:
+        args = _parse_args()
+
+    keywords = args.keywords or DEFAULT_SEARCH_KEYWORDS
     _print_banner()
 
-    keywords_str = ", ".join(DEFAULT_SEARCH_KEYWORDS)
+    if args.mock:
+        console.print("[dim]※ モックモードで実行中（--mock）[/dim]\n")
+
+    keywords_str = ", ".join(keywords)
     with console.status(
         f"[bold cyan]Tips から最新の AI/副業系トレンド記事を抽出中...[/bold cyan] "
         f"[dim]({keywords_str})[/dim]",
         spinner="dots",
     ):
-        articles = fetch_trending_articles()
+        articles = fetch_trending_articles(
+            keywords=keywords,
+            force_mock=args.mock,
+        )
 
     console.print(
         f"[bold green]✓[/bold green] {len(articles)} 件の記事を取得しました。\n"
@@ -136,6 +199,9 @@ def run() -> int:
 
     idea = generate_bonus_idea(target["title"])
     _display_final_result(target, idea)
+
+    if args.output:
+        _save_report(args.output, keywords, articles, scored, target, idea)
 
     console.print(
         f"\n[dim]{'─' * 50}[/dim]\n"

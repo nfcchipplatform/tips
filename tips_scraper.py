@@ -130,12 +130,17 @@ def _deduplicate_articles(articles: list[dict[str, Any]]) -> list[dict[str, Any]
 def fetch_trending_articles(
     keywords: list[str] | None = None,
     use_mock_on_failure: bool = True,
+    force_mock: bool = False,
 ) -> list[dict[str, Any]]:
     """
     Tips.jp からキーワード検索結果を取得し、記事リストを返す。
 
     取得に失敗した場合、または結果が空の場合はモックデータにフォールバックする。
+    force_mock=True の場合はスクレイピングを行わずモックデータを返す。
     """
+    if force_mock:
+        return _get_mock_articles()
+
     search_keywords = keywords or DEFAULT_SEARCH_KEYWORDS
     all_articles: list[dict[str, Any]] = []
 
