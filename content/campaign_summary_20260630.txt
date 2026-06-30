@@ -1,0 +1,11 @@
+ターゲット記事: 【完全自動化】X運用を1日30分で回すAI量産術
+URL: https://tips.jp/u/example/a/x-ai-automation
+スコア: 67 pt
+
+特典アイデア: 特典アイデア: 特定キーワードのポストを自動収集し、スプレッドシートにまとめる Python スクリプト
+
+成果物:
+  - content/tips_article_20260630.txt
+  - content/x_posts_20260630.txt
+  - content/action_checklist_20260630.txt
+  - bonus_tools/inquiry_reply_generator.py
