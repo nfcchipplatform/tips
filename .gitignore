@@ -5,5 +5,4 @@ __pycache__/
 venv/
 .env
 output/
-content/*.txt
 *.json
